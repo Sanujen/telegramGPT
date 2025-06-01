@@ -1,19 +1,23 @@
 import os
 import logging
 from dotenv import load_dotenv
-
-
-from telegram import Update
+from telegram import Update, CallbackQuery
 from telegram.ext import (
     ContextTypes,
     CommandHandler,
     MessageHandler,
     ApplicationBuilder,
     filters,
+    CallbackQueryHandler,
 )
 from conf import users
-
 from gpt_message_handler import handle_response
+from language_handler import (
+    get_language_keyboard,
+    set_user_language,
+    get_user_language,
+    translate_text,
+)
 
 print("Starting up bot...")
 load_dotenv()
@@ -45,7 +49,11 @@ def get_message_content(message):
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello there! I'm a bot. What's up?")
+    """Send language selection keyboard when user starts the bot"""
+    await update.message.reply_text(
+        "Welcome! Please select your preferred language:",
+        reply_markup=get_language_keyboard()
+    )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -62,6 +70,27 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def restart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Restarted the bot.")
+
+
+async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle language selection callback"""
+    query: CallbackQuery = update.callback_query
+    await query.answer()
+    
+    # Extract language code from callback data
+    lang_code = query.data.split('_')[1]
+    user_id = query.from_user.id
+    
+    # Set user's language preference
+    set_user_language(user_id, lang_code)
+    
+    # Send confirmation in selected language
+    if lang_code == 'en':
+        await query.message.edit_text("Language set to English!")
+    elif lang_code == 'ta':
+        await query.message.edit_text("மொழி தமிழுக்கு மாற்றப்பட்டது!")
+    elif lang_code == 'si':
+        await query.message.edit_text("භාෂාව සිංහලට වෙනස් කරන ලදී!")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -85,6 +114,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         file_path = await file.download_to_drive()
         # Pass the file path to handle_response
         response = await handle_response(file_path, user, message_id, content_type)
+
+    # Get user's preferred language
+    user_lang = get_user_language(user.id)
+    
+    # Translate response if not in English
+    if user_lang != 'en' and isinstance(response, str):
+        response = translate_text(response, user_lang)
 
     if type(response) == str and len(response) > 1000:
         file_name = f"result.md"
@@ -119,6 +155,9 @@ if __name__ == "__main__":
     application.add_handler(
         CommandHandler("restart", restart_command, filters=allowed_users_filter)
     )
+    
+    # Add callback handler for language selection
+    application.add_handler(CallbackQueryHandler(language_callback, pattern="^lang_"))
 
     # Message handler with user restriction
     application.add_handler(
