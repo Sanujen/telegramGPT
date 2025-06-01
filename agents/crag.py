@@ -16,7 +16,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 from vectordb import retriever, add_docs_to_vectorstore
-from conf import llm, web_search_tool
+# from conf import llm, web_search_tool
+from conf import llm
 
 
 # Set up logging
@@ -48,7 +49,7 @@ class GraphState(TypedDict):
     """Represents the state of our graph."""
     question: str
     answer: str
-    web_search: str
+    # web_search: str
     documents: List[Document]
     search_attempts: int  # Add this to track search attempts
 
@@ -77,9 +78,9 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
             filtered_docs.append(doc)
             relevant_count += 1
     
-    web_search_needed = relevant_count < 2  # Require at least 2 relevant documents
+    # web_search_needed = relevant_count < 2  # Require at least 2 relevant documents
     state["documents"] = filtered_docs
-    state["web_search"] = "Yes" if web_search_needed else "No"
+    # state["web_search"] = "Yes" if web_search_needed else "No"
     state["search_attempts"] = state.get("search_attempts", 0)
     return state
 
@@ -99,20 +100,20 @@ def transform_query(state: GraphState) -> Dict[str, Any]:
     
     return state
 
-def web_search(state: GraphState) -> Dict[str, Any]:
-    """Perform web search based on the question."""
-    logger.info("Performing web search...")
-    question = state["question"]
-    documents = state["documents"]
-    # Perform web search
-    docs = web_search_tool.invoke({"query": question})
-    web_results = "\n".join([d["content"] for d in docs])
-    web_results = Document(page_content=web_results)
-    documents.append(web_results)
-    add_docs_to_vectorstore([web_results], retriever)
-    state["documents"] = documents
-    state["search_attempts"] = state.get("search_attempts", 0) + 1
-    return state
+# def web_search(state: GraphState) -> Dict[str, Any]:
+#     """Perform web search based on the question."""
+#     logger.info("Performing web search...")
+#     question = state["question"]
+#     documents = state["documents"]
+#     # Perform web search
+#     docs = web_search_tool.invoke({"query": question})
+#     web_results = "\n".join([d["content"] for d in docs])
+#     web_results = Document(page_content=web_results)
+#     documents.append(web_results)
+#     add_docs_to_vectorstore([web_results], retriever)
+#     state["documents"] = documents
+#     state["search_attempts"] = state.get("search_attempts", 0) + 1
+#     return state
 
 def generate(state: GraphState) -> Dict[str, Any]:
     logger.info("Generating final answer with RAG...")
@@ -133,13 +134,15 @@ def generate(state: GraphState) -> Dict[str, Any]:
 def decide_next_step(state: GraphState) -> str:
     """Decide whether to generate an answer, transform the query, or end the process."""
     logger.info("Deciding next step...")
-    web_search = state.get("web_search", "No")
+    # web_search = state.get("web_search", "No")
     search_attempts = state.get("search_attempts", 0)
     
-    if web_search == "Yes" and search_attempts < 2:  # Limit to 2 search attempts
-        return "transform_query"
-    else :
-        return "generate"
+    return generate
+    
+    # if web_search == "Yes" and search_attempts < 2:  # Limit to 2 search attempts
+    #     return "transform_query"
+    # else :
+    #     return "generate"
   
 # Workflow
 workflow = StateGraph(GraphState)
@@ -148,7 +151,7 @@ workflow = StateGraph(GraphState)
 workflow.add_node("retrieve", retrieve)
 workflow.add_node("grade_documents", grade_documents)
 workflow.add_node("transform_query", transform_query)
-workflow.add_node("web_search_node", web_search)
+# workflow.add_node("web_search_node", web_search)
 workflow.add_node("generate", generate)
 
 # Build graph
@@ -163,8 +166,9 @@ workflow.add_conditional_edges(
         "end": END
     },
 )
-workflow.add_edge("transform_query", "web_search_node")
-workflow.add_edge("web_search_node", "generate")
+workflow.add_edge("transform_query", "generate")
+# workflow.add_edge("transform_query", "web_search_node")
+# workflow.add_edge("web_search_node", "generate")
 workflow.add_edge("generate", END)
 
 # Compile

@@ -38,14 +38,14 @@ def get_embeddings(embeddingmodel) -> Embeddings:
         )
         return embed
 
-def get_web_search_tool() -> BaseTool:
-    """Function to get the web search tool. Replace with your implementation."""
-    from langchain_community.tools.tavily_search.tool import TavilySearchResults
-    return TavilySearchResults(k=3)
+# def get_web_search_tool() -> BaseTool:
+#     """Function to get the web search tool. Replace with your implementation."""
+#     from langchain_community.tools.tavily_search.tool import TavilySearchResults
+#     return TavilySearchResults(k=3)
 
 # Initialize components
 # llm = get_llm('llama3.1')
 llm = get_llm('gpt-4o-mini')
 # embeddings = get_embeddings('ollama')
 embeddings = get_embeddings('openai')
-web_search_tool = get_web_search_tool()
+# web_search_tool = get_web_search_tool()

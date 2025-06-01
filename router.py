@@ -16,10 +16,10 @@ router_vectorstore = Chroma(
     )
 
 
-router = AdaptiveRouter(
-    vectorstore=router_vectorstore,
-    llm=llm,
-    embeddings=router_embeddings,
-    prompt_template=router_prompt_template,
-    routes=routes,
-)
+# router = AdaptiveRouter(
+#     vectorstore=router_vectorstore,
+#     llm=llm,
+#     embeddings=router_embeddings,
+#     prompt_template=router_prompt_template,
+#     routes=routes,
+# )
