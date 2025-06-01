@@ -34,3 +34,5 @@ json_repair
 json5
 loguru
 deep-translator==1.11.4
+psycopg2-binary==2.9.9
+load-dotenv==1.0.1
